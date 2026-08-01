@@ -19,20 +19,6 @@ st.set_page_config(
 with open("model.pkl", "rb") as file:
     model = pickle.load(file)
 
-import streamlit as st
-import pickle
-
-with open("model.pkl", "rb") as f:
-    model = pickle.load(f)
-
-st.write("Model type:", type(model))
-
-if hasattr(model, "n_features_in_"):
-    st.write("Expected features:", model.n_features_in_)
-
-if hasattr(model, "feature_names_in_"):
-    st.write("Feature names:", model.feature_names_in_)
-
 # -------------------------------------------------
 # Custom CSS
 # -------------------------------------------------
