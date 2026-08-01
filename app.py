@@ -1,149 +1,303 @@
 import streamlit as st
 import pickle
 import numpy as np
+import plotly.graph_objects as go
 
-# -------------------------
-# Page Configuration
-# -------------------------
+# -------------------------------------------------
+# Page Config
+# -------------------------------------------------
 st.set_page_config(
-    page_title="Student Admission Predictor",
+    page_title="Graduate Admission Predictor",
     page_icon="🎓",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# -------------------------
+# -------------------------------------------------
+# Load Model
+# -------------------------------------------------
+with open("model.pkl", "rb") as file:
+    model = pickle.load(file)
+
+# -------------------------------------------------
 # Custom CSS
-# -------------------------
+# -------------------------------------------------
 st.markdown("""
 <style>
 
 .stApp{
-    background: linear-gradient(135deg,#0F172A,#1E3A8A);
+background: linear-gradient(135deg,#0f172a,#1e3a8a,#2563eb);
+background-size:400% 400%;
+animation: gradient 15s ease infinite;
 }
 
-.main-title{
-    font-size:48px;
-    font-weight:700;
-    color:white;
-    text-align:center;
+@keyframes gradient{
+0%{background-position:0% 50%;}
+50%{background-position:100% 50%;}
+100%{background-position:0% 50%;}
 }
 
-.sub-title{
-    text-align:center;
-    color:#dbeafe;
-    font-size:20px;
+.title{
+text-align:center;
+font-size:50px;
+font-weight:bold;
+color:white;
 }
 
-.prediction-box{
-    padding:25px;
-    border-radius:20px;
-    background-color:#ffffff15;
-    backdrop-filter: blur(8px);
+.subtitle{
+text-align:center;
+font-size:20px;
+color:#dbeafe;
+margin-bottom:20px;
 }
 
-.metric-card{
-    background:white;
-    padding:15px;
-    border-radius:15px;
-    box-shadow:0px 8px 20px rgba(0,0,0,.15);
+.glass{
+background: rgba(255,255,255,0.10);
+padding:25px;
+border-radius:20px;
+backdrop-filter: blur(14px);
+border:1px solid rgba(255,255,255,.25);
+box-shadow:0 10px 30px rgba(0,0,0,.25);
+}
+
+.metric{
+background:white;
+padding:18px;
+border-radius:15px;
+text-align:center;
+box-shadow:0 10px 20px rgba(0,0,0,.20);
+}
+
+.big{
+font-size:42px;
+font-weight:bold;
+color:#2563EB;
+}
+
+.small{
+font-size:18px;
+color:gray;
 }
 
 div.stButton > button{
-    width:100%;
-    height:60px;
-    font-size:22px;
-    border-radius:12px;
-    background:#2563EB;
-    color:white;
-    font-weight:bold;
+background:#2563EB;
+color:white;
+font-size:22px;
+font-weight:bold;
+height:60px;
+width:100%;
+border-radius:12px;
+border:none;
+transition:0.3s;
 }
 
 div.stButton > button:hover{
-    background:#1D4ED8;
-    color:white;
+background:#1D4ED8;
+transform:scale(1.02);
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# -------------------------
-# Load Model
-# -------------------------
-model = pickle.load(open("model.pkl", "rb"))
+# -------------------------------------------------
+# Sidebar
+# -------------------------------------------------
+with st.sidebar:
 
-# -------------------------
+    st.title("🎓 Graduate Admission")
+
+    st.markdown("---")
+
+    st.write("### About")
+
+    st.info("""
+This application predicts the probability of admission
+using a Linear Regression model trained on the
+Graduate Admissions dataset.
+
+### Features Used
+
+- GRE Score
+- TOEFL Score
+- University Rating
+- SOP
+- LOR
+- CGPA
+- Research
+""")
+
+# -------------------------------------------------
 # Header
-# -------------------------
-st.markdown("<h1 class='main-title'>🎓 Student Admission Chance Predictor</h1>", unsafe_allow_html=True)
+# -------------------------------------------------
+st.markdown("<div class='title'>🎓 Graduate Admission Predictor</div>", unsafe_allow_html=True)
 
-st.markdown("<p class='sub-title'>Predict the probability of admission using Machine Learning</p>", unsafe_allow_html=True)
+st.markdown(
+"<div class='subtitle'>Predict your probability of admission using Machine Learning</div>",
+unsafe_allow_html=True
+)
 
 st.write("")
 
-# -------------------------
+# -------------------------------------------------
 # Layout
-# -------------------------
-col1, col2 = st.columns([1,1])
+# -------------------------------------------------
+left, right = st.columns([1.2,1])
 
-with col1:
+# -------------------------------------------------
+# INPUTS
+# -------------------------------------------------
+with left:
 
-    st.markdown("### 📊 Student Academic Profile")
+    st.markdown("<div class='glass'>", unsafe_allow_html=True)
 
-    gre = st.slider("GRE Score",260,340,310)
+    st.subheader("📚 Student Academic Profile")
 
-    toefl = st.slider("TOEFL Score",80,120,105)
+    gre = st.slider("GRE Score",260,340,320)
 
-    university = st.slider("University Rating",1,5,3)
+    toefl = st.slider("TOEFL Score",80,120,110)
 
-    sop = st.slider("SOP Strength",1.0,5.0,3.0)
+    university = st.select_slider(
+        "University Rating",
+        options=[1,2,3,4,5],
+        value=3
+    )
 
-    lor = st.slider("LOR Strength",1.0,5.0,3.0)
+    sop = st.slider("Statement of Purpose (SOP)",1.0,5.0,4.0,0.5)
 
-    cgpa = st.slider("CGPA",6.0,10.0,8.5)
+    lor = st.slider("Letter of Recommendation (LOR)",1.0,5.0,4.0,0.5)
 
-    research = st.selectbox("Research Experience",[0,1])
+    cgpa = st.slider("CGPA",6.0,10.0,8.8,0.01)
 
-with col2:
+    research = st.radio(
+        "Research Experience",
+        ["No","Yes"],
+        horizontal=True
+    )
 
-    st.markdown("### 📈 Prediction")
+    research_value = 1 if research=="Yes" else 0
 
-    st.markdown('<div class="prediction-box">',unsafe_allow_html=True)
+    predict = st.button("🚀 Predict Admission Chance")
 
-    st.write("Enter the student details and click the button below.")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    if st.button("Predict Admission Chance"):
+# -------------------------------------------------
+# PREDICTION
+# -------------------------------------------------
+with right:
 
-        data = np.array([[gre,
-                          toefl,
-                          university,
-                          sop,
-                          lor,
-                          cgpa,
-                          research]])
+    st.markdown("<div class='glass'>", unsafe_allow_html=True)
 
-        prediction = model.predict(data)[0]
+    st.subheader("📈 Prediction")
+
+    if predict:
+
+        X = np.array([[
+            gre,
+            toefl,
+            university,
+            sop,
+            lor,
+            cgpa,
+            research_value
+        ]])
+
+        prediction = model.predict(X)[0]
 
         prediction = max(0, min(prediction,1))
 
-        st.success(f"Admission Chance: **{prediction*100:.2f}%**")
+        percent = prediction*100
 
-        if prediction >= 0.80:
+        if percent >= 90:
+            label="🏆 Excellent Chance"
+            color="green"
             st.balloons()
-            st.success("Excellent admission chances! 🎉")
 
-        elif prediction >= 0.60:
-            st.info("Good chances of admission.")
+        elif percent >=80:
+            label="🎉 Very High Chance"
+            color="green"
 
-        elif prediction >= 0.40:
-            st.warning("Moderate chances. Consider improving your profile.")
+        elif percent >=70:
+            label="✅ Good Chance"
+            color="orange"
+
+        elif percent >=60:
+            label="👍 Moderate Chance"
+            color="orange"
 
         else:
-            st.error("Low admission probability.")
+            label="📚 Needs Improvement"
+            color="red"
 
-    st.markdown("</div>",unsafe_allow_html=True)
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=percent,
+            number={'suffix':"%"},
+            title={'text':"Admission Chance"},
+            gauge={
+                'axis':{'range':[0,100]},
+                'bar':{'color':'royalblue'},
+                'steps':[
+                    {'range':[0,40],'color':'#ff4d4d'},
+                    {'range':[40,70],'color':'#ffd54f'},
+                    {'range':[70,100],'color':'#66bb6a'}
+                ]
+            }
+        ))
+
+        fig.update_layout(
+            height=350,
+            margin=dict(l=20,r=20,t=40,b=20),
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white")
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.progress(percent/100)
+
+        st.markdown(
+            f"""
+            <div class='metric'>
+                <div class='big'>{percent:.2f}%</div>
+                <div class='small'>{label}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    else:
+
+        st.info("Fill in the student's academic profile and click **Predict Admission Chance**.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# -------------------------------------------------
+# Profile Summary
+# -------------------------------------------------
+if predict:
+
+    st.write("")
+
+    st.markdown("## 📋 Student Profile Summary")
+
+    c1,c2,c3,c4 = st.columns(4)
+
+    c1.metric("GRE",gre)
+
+    c2.metric("TOEFL",toefl)
+
+    c3.metric("CGPA",cgpa)
+
+    c4.metric("Research",research)
+
+    c5,c6,c7 = st.columns(3)
+
+    c5.metric("University Rating",university)
+
+    c6.metric("SOP",sop)
+
+    c7.metric("LOR",lor)
 
 st.write("")
-
 st.markdown("---")
-
-st.caption("Built with ❤️ using Streamlit & Scikit-Learn")
+st.caption("Made with ❤️ using Streamlit • Scikit-Learn • Plotly")
